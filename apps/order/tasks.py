@@ -1,12 +1,13 @@
 from django.core.mail import send_mail
+from celery import shared_task
 
-
-def send_confirmation_mail(instance):
+@shared_task
+def send_confirmation_mail(username, address, pk, email):
     message = f"""
-    Zdravstvuite, {instance.user.username}!
-    Podtverdite zakaz na adres {instance.address},
+    Zdravstvuite, {username}!
+    Podtverdite zakaz na adres {address},
 
-    http://localhost8000/order/{instance.pk}/confirm/
+    http://localhost8000/order/{pk}/confirm/
 
     Esli eto byli ne Vy, ignoriruite eto soobshenie 
     """
@@ -14,6 +15,6 @@ def send_confirmation_mail(instance):
         subject='Podtverjdenie zakaza',
         message=message,
         from_email='test@test.com',
-        recipient_list=[instance.user.email],
+        recipient_list=[email],
         fail_silently=False
     )

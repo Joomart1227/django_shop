@@ -12,8 +12,9 @@ class ProductListSerializer(serializers.ListSerializer):
         return [{
             'title': item.title,
             'slug': item.slug,
-            'user': item.user,
-            'price': item.price
+            'user': item.user.username,
+            'price': item.price,
+            'main_image': item.main_image.url
         } for item in data.all()]
 
 
@@ -23,12 +24,13 @@ class ProductSerializer(serializers.ModelSerializer):
         write_only=True,
         required=False
     )
+    user = serializers.ReadOnlyField(source='user.username')
 
     class Meta:
         model = Product
         fields = '__all__'
         # exclude = 'Pole_kotoroe_nujno_propustit'
-        read_only_fields = ['user', 'slug']
+        read_only_fields = ['slug']
         lisl_serializer_class = ProductListSerializer
 
     def to_representation(self, instance):
@@ -36,12 +38,13 @@ class ProductSerializer(serializers.ModelSerializer):
         representation['carousel'] = ProductImageSerializer(instance.images.all(), many=True).data
         return representation
     
-    def create(self, validated_data):
+    def create(self, validated_data: dict):
         validated_data['user'] = self.context['request'].user
-        imgs = validated_data.pop('imgs')
+        imgs = validated_data.pop('imgs', None)
         product = Product.objects.create(**validated_data)
-        images = []
-        for image in imgs:
-            images.append(ProductImage(product=product, image=image))
-        ProductImage.objects.bulk_create(images)
+        if imgs is not None:
+            images = []
+            for image in imgs:
+                images.append(ProductImage(product=product, image=image))
+            ProductImage.objects.bulk_create(images)
         return product
